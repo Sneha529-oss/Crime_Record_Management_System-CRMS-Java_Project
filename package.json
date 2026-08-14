@@ -1,0 +1,26 @@
+{
+  "name": "crms_project",
+  "version": "1.0.0",
+  "main": "server.js",
+"scripts": {
+  "start": "node server.js"
+},
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "A **Database Management System (DBMS) project** designed to efficiently manage and organize crime-related information, including criminal records, cases, complaints, officers, and investigation details.",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "mysql2": "^3.23.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Mahek-03/CrimeRecordManagementSystem_DBMS.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Mahek-03/CrimeRecordManagementSystem_DBMS/issues"
+  },
+  "homepage": "https://github.com/Mahek-03/CrimeRecordManagementSystem_DBMS#readme"
+}

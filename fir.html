@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>CRMS — FIR Management</title>
+  <link rel="stylesheet" href="style.css"/>
+  <style>
+    .layout { display:grid; grid-template-columns:1fr 360px; gap:22px; align-items:start; }
+    .form-panel { background:var(--surface); border:1px solid var(--border); }
+    .form-body { padding:22px; }
+    .form-footer { padding:14px 22px; border-top:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+    .fir-card { border-bottom:1px solid rgba(30,37,48,0.5); padding:14px 18px; cursor:pointer; transition:background 0.2s; }
+    .fir-card:hover { background:rgba(255,255,255,0.02); }
+    .fir-no { font-family:var(--mono); font-size:11px; color:var(--accent); }
+    .fir-title { font-size:13px; font-weight:600; color:#fff; margin:3px 0; }
+    .fir-meta { font-family:var(--mono); font-size:10px; color:var(--muted); line-height:1.7; }
+    .search-box { padding:12px 18px; border-bottom:1px solid var(--border); }
+    .search-box input { width:100%; background:var(--bg); border:1px solid var(--border); color:var(--text); padding:7px 11px; font-family:var(--mono); font-size:11px; outline:none; }
+    .search-box input:focus { border-color:var(--accent); }
+    .fir-count { font-family:var(--mono); font-size:11px; color:var(--muted); }
+  </style>
+</head>
+<body>
+<div id="sidebar-container"></div>
+<main class="main">
+  <header class="topbar">
+    <div class="topbar-title">CRMS &nbsp;/&nbsp; <span>FIR MANAGEMENT</span></div>
+  </header>
+  <div class="content">
+    <div class="page-header">
+      <div><h2>FIR MANAGEMENT</h2><p>// REGISTER · TRACK · MANAGE FIRST INFORMATION REPORTS</p></div>
+    </div>
+
+    <div class="layout">
+      <!-- FORM -->
+      <div class="form-panel">
+        <div class="panel-header">
+          <span class="panel-title">REGISTER NEW FIR</span>
+          <span style="font-family:var(--mono);font-size:11px;color:var(--green)" id="fir-preview">FIR-AUTO</span>
+        </div>
+        <div class="form-body">
+          <div class="form-section-title">COMPLAINANT DETAILS</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">FULL NAME *</label>
+              <input class="form-input" type="text" id="f-name" placeholder="Complainant name"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">CONTACT *</label>
+              <input class="form-input" type="tel" id="f-contact" placeholder="10-digit mobile"/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">ADDRESS</label>
+            <input class="form-input" type="text" id="f-address" placeholder="Complainant address"/>
+          </div>
+
+          <div class="form-section-title" style="margin-top:16px">INCIDENT DETAILS</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">CRIME TYPE *</label>
+              <select class="form-select" id="f-crime-type">
+                <option>Theft</option><option>Assault</option><option>Robbery</option>
+                <option>Fraud</option><option>Cybercrime</option><option>Murder</option>
+                <option>Missing Person</option><option>Domestic Violence</option><option>Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">DATE & TIME *</label>
+              <input class="form-input" type="datetime-local" id="f-datetime"/>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">LOCATION *</label>
+              <input class="form-input" type="text" id="f-loc" placeholder="Where it happened"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">WITNESS</label>
+              <input class="form-input" type="text" id="f-witness" placeholder="Witness name"/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">DESCRIPTION *</label>
+            <textarea class="form-textarea" id="f-desc" placeholder="Full incident description..."></textarea>
+          </div>
+
+          <div class="form-section-title" style="margin-top:16px">STATION & OFFICER</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">POLICE STATION *</label>
+              <select class="form-select" id="f-station">
+                <option>Shivajinagar PS</option><option>Kothrud PS</option>
+                <option>Hadapsar PS</option><option>Baner PS</option><option>Viman Nagar PS</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">RECEIVING OFFICER *</label>
+              <select class="form-select" id="f-officer">
+                <option>R. Desai</option><option>A. Patil</option>
+                <option>M. Kulkarni</option><option>S. Jadhav</option><option>P. More</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="form-footer">
+          <button class="btn btn-secondary" onclick="clearForm()">CLEAR</button>
+          <button class="btn btn-primary" onclick="submitFIR()">REGISTER FIR →</button>
+        </div>
+      </div>
+
+      <!-- FIR LIST -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">REGISTERED FIRs</span>
+          <span class="fir-count" id="fir-count">—</span>
+        </div>
+        <div class="search-box">
+          <input type="text" placeholder="Search FIR no, type..." id="fir-search" oninput="filterFIRs()"/>
+        </div>
+        <div id="fir-list"><div class="loading">LOADING...</div></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="shared.js"></script>
+<script>
+  renderSidebar('fir');
+  let allFIRs = [];
+
+  async function loadFIRs() {
+    try {
+      allFIRs = await fetch(`${BASE}/fir`).then(r => r.json());
+      document.getElementById('fir-preview').textContent =
+        `NEXT: FIR-${String(allFIRs.length + 1).padStart(4,'0')}`;
+      renderFIRs(allFIRs);
+    } catch { showToast('Server not running!', 'error'); }
+  }
+
+  function renderFIRs(data) {
+    document.getElementById('fir-count').textContent = `${data.length} records`;
+    const colors = { OPEN:'var(--accent)', PENDING:'var(--amber)', CLOSED:'var(--green)' };
+    document.getElementById('fir-list').innerHTML = data.length
+      ? data.map(f => `
+          <div class="fir-card">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span class="fir-no">${f.fir_number}</span>
+              ${badge(f.status)}
+            </div>
+            <div class="fir-title">${f.crime_type} — ${f.incident_location||'—'}</div>
+            <div class="fir-meta">
+              <b style="color:var(--text)">${f.complainant_name}</b><br/>
+              ${f.police_station} · ${f.receiving_officer}<br/>
+              ${fmtDate(f.created_at)}
+            </div>
+          </div>`).join('')
+      : '<div class="loading">NO FIRs REGISTERED</div>';
+  }
+
+  function filterFIRs() {
+    const q = document.getElementById('fir-search').value.toLowerCase();
+    renderFIRs(allFIRs.filter(f =>
+      f.fir_number.toLowerCase().includes(q) ||
+      f.crime_type.toLowerCase().includes(q) ||
+      f.complainant_name.toLowerCase().includes(q)
+    ));
+  }
+
+  function clearForm() {
+    ['f-name','f-contact','f-address','f-loc','f-datetime','f-desc','f-witness']
+      .forEach(id => document.getElementById(id).value = '');
+  }
+
+  async function submitFIR() {
+    const name    = document.getElementById('f-name').value.trim();
+    const contact = document.getElementById('f-contact').value.trim();
+    const loc     = document.getElementById('f-loc').value.trim();
+    const desc    = document.getElementById('f-desc').value.trim();
+    const dt      = document.getElementById('f-datetime').value;
+
+    if (!name || !contact || !loc || !desc || !dt) {
+      showToast('Please fill all required fields (*)', 'error'); return;
+    }
+
+    try {
+      const res = await fetch(`${BASE}/fir`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          complainant_name:    name,
+          contact_number:      contact,
+          complainant_address: document.getElementById('f-address').value,
+          crime_type:          document.getElementById('f-crime-type').value,
+          incident_location:   loc,
+          incident_datetime:   dt.replace('T', ' ') + ':00',
+          description:         desc,
+          witness_name:        document.getElementById('f-witness').value,
+          police_station:      document.getElementById('f-station').value,
+          receiving_officer:   document.getElementById('f-officer').value,
+        })
+      }).then(r => r.json());
+
+      showToast(`✓ ${res.fir_number} registered in MySQL`);
+      clearForm();
+      loadFIRs();
+    } catch { showToast('Error registering FIR', 'error'); }
+  }
+
+  loadFIRs();
+</script>
+</body>
+</html>

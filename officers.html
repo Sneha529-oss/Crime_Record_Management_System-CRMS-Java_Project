@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>CRMS — Officer Heatmap</title>
+  <link rel="stylesheet" href="style.css"/>
+  <style>
+    .heatmap-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px;}
+    .officer-card{animation:fadeUp 0.4s both;}
+    .officer-top{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+    .officer-avatar{width:44px;height:44px;background:var(--border);display:flex;align-items:center;justify-content:center;font-family:var(--cond);font-size:16px;font-weight:800;color:var(--text);flex-shrink:0;}
+    .officer-name{font-size:14px;font-weight:700;color:#fff;}
+    .officer-rank{font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:2px;}
+    .case-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:12px 0;}
+    .case-stat{background:var(--bg);border:1px solid var(--border);padding:6px;text-align:center;}
+    .case-stat-num{font-family:var(--cond);font-size:18px;font-weight:800;}
+    .case-stat-label{font-family:var(--mono);font-size:8px;color:var(--muted);letter-spacing:1px;}
+    .heat-label{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;margin-bottom:4px;}
+    .heat-badge{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:1px;padding:2px 6px;}
+    .heat-CRITICAL{background:rgba(255,34,51,0.25);color:#ff2233;border:1px solid rgba(255,34,51,0.4);}
+    .heat-HIGH    {background:rgba(232,48,58,0.15);color:var(--accent);border:1px solid rgba(232,48,58,0.3);}
+    .heat-MEDIUM  {background:rgba(245,166,35,0.12);color:var(--amber);border:1px solid rgba(245,166,35,0.25);}
+    .heat-LOW     {background:rgba(45,206,110,0.12);color:var(--green);border:1px solid rgba(45,206,110,0.25);}
+
+    .leaderboard{margin-top:6px;}
+    .lb-row{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid rgba(30,37,48,0.5);}
+    .lb-rank{font-family:var(--cond);font-size:20px;font-weight:800;width:28px;text-align:center;}
+    .lb-bar-track{flex:1;height:6px;background:var(--border);}
+    .lb-bar-fill{height:100%;transition:width 1s ease;}
+    .summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;}
+    .sum-card{background:var(--surface);border:1px solid var(--border);padding:16px;text-align:center;}
+    .sum-num{font-family:var(--cond);font-size:32px;font-weight:800;}
+    .sum-label{font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:4px;letter-spacing:1px;}
+  </style>
+</head>
+<body>
+<div id="sidebar-container"></div>
+<main class="main">
+  <header class="topbar">
+    <div class="topbar-title">CRMS &nbsp;/&nbsp; <span>OFFICER HEATMAP</span></div>
+  </header>
+  <div class="content">
+    <div class="page-header">
+      <div><h2>OFFICER DUTY HEATMAP</h2><p>// CASE LOAD ANALYSIS · CRITICAL CASE ASSIGNMENT · SQL JOINED DATA</p></div>
+    </div>
+
+    <!-- SUMMARY -->
+    <div class="summary-grid" id="summary-grid">
+      <div class="sum-card"><div class="sum-num" style="color:var(--accent)" id="s-total">—</div><div class="sum-label">TOTAL ASSIGNED</div></div>
+      <div class="sum-card"><div class="sum-num" style="color:#ff2233" id="s-crit">—</div><div class="sum-label">CRITICAL CASES</div></div>
+      <div class="sum-card"><div class="sum-num" style="color:var(--amber)" id="s-open">—</div><div class="sum-label">OPEN CASES</div></div>
+      <div class="sum-card"><div class="sum-num" style="color:var(--green)" id="s-closed">—</div><div class="sum-label">CLOSED CASES</div></div>
+    </div>
+
+    <!-- HEATMAP CARDS -->
+    <div class="panel-header" style="background:var(--surface);border:1px solid var(--border);border-bottom:none;padding:13px 18px">
+      <span class="panel-title">🔥 OFFICER CASE LOAD — FROM crimes TABLE</span>
+    </div>
+    <div class="heatmap-grid" id="heatmap-grid" style="border:1px solid var(--border);padding:16px;background:var(--surface)">
+      <div style="grid-column:1/-1" class="loading">LOADING HEATMAP...</div>
+    </div>
+
+    <!-- LEADERBOARD -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">OFFICER LEADERBOARD — TOTAL CASES HANDLED</span>
+      </div>
+      <div class="leaderboard" id="leaderboard">
+        <div class="loading">LOADING...</div>
+      </div>
+    </div>
+
+    <!-- OFFICERS FROM DB -->
+    <div style="margin-top:16px" class="panel">
+      <div class="panel-header">
+        <span class="panel-title">OFFICER PROFILES — officers JOIN police_stations</span>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>BADGE</th><th>NAME</th><th>RANK</th><th>STATION</th><th>CONTACT</th><th>STATUS</th></tr></thead>
+        <tbody id="officers-tbody"><tr><td colspan="6" class="loading">LOADING...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<script src="shared.js"></script>
+<script>
+  renderSidebar('officers');
+
+  function heatLevel(critical, total) {
+    if (critical >= 2) return 'CRITICAL';
+    if (total >= 4)    return 'HIGH';
+    if (total >= 2)    return 'MEDIUM';
+    return 'LOW';
+  }
+  function heatColor(level) {
+    return { CRITICAL:'#ff2233', HIGH:'var(--accent)', MEDIUM:'var(--amber)', LOW:'var(--green)' }[level];
+  }
+
+  async function loadHeatmap() {
+    try {
+      const data = await fetch(`${BASE}/heatmap`).then(r => r.json());
+      const maxTotal = data.length ? Math.max(...data.map(d => Number(d.total))) : 1;
+
+      // Summary
+      const totals = data.reduce((a,b) => ({
+        total: a.total+Number(b.total), critical: a.critical+Number(b.critical),
+        open: a.open+Number(b.open_cases), closed: a.closed+Number(b.closed)
+      }), {total:0,critical:0,open:0,closed:0});
+      animateCounter(document.getElementById('s-total'),  totals.total);
+      animateCounter(document.getElementById('s-crit'),   totals.critical);
+      animateCounter(document.getElementById('s-open'),   totals.open);
+      animateCounter(document.getElementById('s-closed'), totals.closed);
+
+      // Cards
+      const grid = document.getElementById('heatmap-grid');
+      grid.innerHTML = data.map((o, i) => {
+        const level = heatLevel(Number(o.critical), Number(o.total));
+        const pct   = Math.round((Number(o.total) / maxTotal) * 100);
+        const col   = heatColor(level);
+        const heatClass = `heat-${pct >= 70 ? 'critical' : pct >= 45 ? 'high' : pct >= 25 ? 'medium' : 'low'}`;
+        return `
+          <div class="officer-card" style="animation-delay:${i*0.08}s">
+            <div style="position:absolute;top:0;left:0;right:0;height:3px;background:${col}"></div>
+            <div class="officer-top">
+              <div class="officer-avatar">${o.name.split(' ').map(n=>n[0]).join('').slice(0,2)}</div>
+              <div>
+                <div class="officer-name">${o.name}</div>
+                <div class="officer-rank">ASSIGNED OFFICER</div>
+                <div class="heat-badge heat-${level}" style="margin-top:4px">${level} LOAD</div>
+              </div>
+            </div>
+            <div class="case-stats">
+              <div class="case-stat">
+                <div class="case-stat-num" style="color:#ff2233">${o.critical}</div>
+                <div class="case-stat-label">CRITICAL</div>
+              </div>
+              <div class="case-stat">
+                <div class="case-stat-num" style="color:var(--accent)">${o.open_cases}</div>
+                <div class="case-stat-label">OPEN</div>
+              </div>
+              <div class="case-stat">
+                <div class="case-stat-num" style="color:var(--amber)">${o.pending}</div>
+                <div class="case-stat-label">PENDING</div>
+              </div>
+              <div class="case-stat">
+                <div class="case-stat-num" style="color:var(--green)">${o.closed}</div>
+                <div class="case-stat-label">CLOSED</div>
+              </div>
+            </div>
+            <div class="heat-label">
+              <span>CASE LOAD</span>
+              <span style="color:${col}">${pct}% (${o.total} cases)</span>
+            </div>
+            <div class="heat-bar-track">
+              <div class="heat-bar-fill ${heatClass}" style="width:0%" data-pct="${pct}"></div>
+            </div>
+          </div>`;
+      }).join('');
+      setTimeout(() => grid.querySelectorAll('.heat-bar-fill').forEach(b => b.style.width = b.dataset.pct+'%'), 100);
+
+      // Leaderboard
+      const lb = document.getElementById('leaderboard');
+      lb.innerHTML = data.map((o, i) => {
+        const pct = Math.round((Number(o.total)/maxTotal)*100);
+        const rankColors = ['#f5a623','#d0d8e8','#cd7f32'];
+        return `
+          <div class="lb-row">
+            <div class="lb-rank" style="color:${rankColors[i]||'var(--muted)'}">${i+1}</div>
+            <div style="width:120px;font-size:13px;font-weight:600;color:#fff">${o.name}</div>
+            <div class="lb-bar-track">
+              <div class="lb-bar-fill" style="width:0%;background:${heatColor(heatLevel(Number(o.critical),Number(o.total)))}"
+                   data-pct="${pct}"></div>
+            </div>
+            <div style="width:40px;text-align:right;font-family:var(--mono);font-size:12px;color:var(--muted)">${o.total}</div>
+            <div style="width:80px;text-align:right">${badge(heatLevel(Number(o.critical),Number(o.total))+'-risk')||''}<span class="badge badge-${o.critical>0?'CRITICAL':'OPEN'}">${o.critical > 0 ? o.critical+' CRIT' : o.total+' CASES'}</span></div>
+          </div>`;
+      }).join('');
+      setTimeout(() => lb.querySelectorAll('.lb-bar-fill').forEach(b => b.style.width = b.dataset.pct+'%'), 100);
+    } catch { showToast('Server not running!', 'error'); }
+  }
+
+  async function loadOfficers() {
+    const data = await fetch(`${BASE}/officers`).then(r => r.json());
+    document.getElementById('officers-tbody').innerHTML = data.map(o => `
+      <tr>
+        <td class="td-id">${o.badge_number}</td>
+        <td class="td-bold">${o.name}</td>
+        <td class="td-muted">${o.rank}</td>
+        <td class="td-muted">${o.station_name||'—'}</td>
+        <td class="td-muted">${o.contact||'—'}</td>
+        <td>${badge(o.status)}</td>
+      </tr>`).join('');
+  }
+
+  loadHeatmap(); loadOfficers();
+</script>
+</body>
+</html>

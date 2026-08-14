@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>CRMS — Crimes</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+<div id="sidebar-container"></div>
+<main class="main">
+  <header class="topbar">
+    <div class="topbar-title">CRMS &nbsp;/&nbsp; <span>CRIMES</span></div>
+  </header>
+  <div class="content">
+    <div class="page-header">
+      <div><h2>CRIME RECORDS</h2><p>// ADD · EDIT · DELETE · SEARCH</p></div>
+      <button class="btn btn-primary" onclick="openModal()">+ ADD CRIME</button>
+    </div>
+
+    <div class="filters">
+      <input  class="filter-input"  type="text"   id="s-search"  placeholder="Search type, location..." oninput="applyFilters()"/>
+      <select class="filter-select" id="s-status"  onchange="applyFilters()">
+        <option value="">ALL STATUS</option>
+        <option>OPEN</option><option>CLOSED</option><option>PENDING</option><option>CRITICAL</option>
+      </select>
+      <select class="filter-select" id="s-type" onchange="applyFilters()">
+        <option value="">ALL TYPES</option>
+        <option>Robbery</option><option>Assault</option><option>Theft</option>
+        <option>Fraud</option><option>Cybercrime</option><option>Murder</option>
+      </select>
+    </div>
+
+    <div class="panel">
+      <table class="data-table">
+        <thead>
+          <tr><th>#</th><th>TYPE</th><th>LOCATION</th><th>DATE</th><th>OFFICER</th><th>STATUS</th><th>ACTIONS</th></tr>
+        </thead>
+        <tbody id="tbody"><tr><td colspan="7" class="loading">LOADING...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-title">ADD CRIME</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="f-id"/>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">CRIME TYPE</label>
+          <select class="form-select" id="f-type">
+            <option>Robbery</option><option>Assault</option><option>Theft</option>
+            <option>Fraud</option><option>Cybercrime</option><option>Murder</option><option>Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">STATUS</label>
+          <select class="form-select" id="f-status">
+            <option value="OPEN">OPEN</option><option value="PENDING">PENDING</option>
+            <option value="CLOSED">CLOSED</option><option value="CRITICAL">CRITICAL</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">LOCATION *</label>
+        <input class="form-input" type="text" id="f-location" placeholder="e.g. Kothrud, Pune"/>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">DATE *</label>
+          <input class="form-input" type="date" id="f-date"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">ASSIGNED OFFICER</label>
+          <input class="form-input" type="text" id="f-officer" placeholder="Officer name"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">DESCRIPTION</label>
+        <textarea class="form-textarea" id="f-desc" placeholder="Describe the incident..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">CANCEL</button>
+      <button class="btn btn-primary" onclick="saveCrime()">SAVE RECORD</button>
+    </div>
+  </div>
+</div>
+
+<script src="shared.js"></script>
+<script>
+  renderSidebar('crimes');
+  let allCrimes = [];
+
+  async function load() {
+    try {
+      allCrimes = await fetch(`${BASE}/crimes`).then(r => r.json());
+      render(allCrimes);
+    } catch { showToast('Server not running!', 'error'); }
+  }
+
+  function render(data) {
+    const tbody = document.getElementById('tbody');
+    if (!data.length) { tbody.innerHTML = `<tr><td colspan="7" class="loading">NO RECORDS FOUND</td></tr>`; return; }
+    tbody.innerHTML = data.map(c => `
+      <tr>
+        <td class="td-id">#${c.crime_id}</td>
+        <td class="td-bold">${c.crime_type}</td>
+        <td class="td-muted">📍 ${c.location}</td>
+        <td class="td-muted">${fmtDate(c.date)}</td>
+        <td class="td-muted">${c.assigned_officer||'—'}</td>
+        <td>${badge(c.status)}</td>
+        <td>
+          <button class="btn-sm-edit" onclick="editCrime(${c.crime_id})">EDIT</button>
+          <button class="btn-sm-del"  onclick="deleteCrime(${c.crime_id})">DEL</button>
+        </td>
+      </tr>`).join('');
+  }
+
+  function applyFilters() {
+    const q = document.getElementById('s-search').value.toLowerCase();
+    const s = document.getElementById('s-status').value;
+    const t = document.getElementById('s-type').value;
+    render(allCrimes.filter(c =>
+      (!q || c.crime_type.toLowerCase().includes(q) || c.location.toLowerCase().includes(q)) &&
+      (!s || c.status === s) && (!t || c.crime_type === t)
+    ));
+  }
+
+  function openModal(crime = null) {
+    document.getElementById('modal-title').textContent = crime ? 'EDIT CRIME' : 'ADD CRIME';
+    document.getElementById('f-id').value       = crime?.crime_id || '';
+    document.getElementById('f-type').value     = crime?.crime_type || 'Robbery';
+    document.getElementById('f-status').value   = crime?.status || 'OPEN';
+    document.getElementById('f-location').value = crime?.location || '';
+    document.getElementById('f-date').value     = crime?.date?.split('T')[0] || '';
+    document.getElementById('f-officer').value  = crime?.assigned_officer || '';
+    document.getElementById('f-desc').value     = crime?.description || '';
+    document.getElementById('modal').classList.add('open');
+  }
+  function closeModal() { document.getElementById('modal').classList.remove('open'); }
+
+  function editCrime(id) { openModal(allCrimes.find(c => c.crime_id === id)); }
+
+  async function saveCrime() {
+    const id = document.getElementById('f-id').value;
+    const loc = document.getElementById('f-location').value.trim();
+    const date = document.getElementById('f-date').value;
+    if (!loc || !date) { showToast('Location and date are required', 'error'); return; }
+
+    const body = {
+      crime_type:       document.getElementById('f-type').value,
+      status:           document.getElementById('f-status').value,
+      location:         loc,
+      date:             date,
+      assigned_officer: document.getElementById('f-officer').value,
+      description:      document.getElementById('f-desc').value,
+    };
+
+    try {
+      if (id) {
+        await fetch(`${BASE}/crimes/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+        showToast('✓ Crime record updated');
+      } else {
+        await fetch(`${BASE}/crimes`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+        showToast('✓ Crime added to database');
+      }
+      closeModal(); load();
+    } catch { showToast('Error saving record', 'error'); }
+  }
+
+  async function deleteCrime(id) {
+    if (!confirm('Delete this crime record from the database?')) return;
+    try {
+      await fetch(`${BASE}/crimes/${id}`, { method:'DELETE' });
+      showToast('✓ Record deleted');
+      load();
+    } catch { showToast('Error deleting', 'error'); }
+  }
+
+  load();
+</script>
+</body>
+</html>

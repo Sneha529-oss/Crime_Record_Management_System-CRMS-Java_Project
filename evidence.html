@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>CRMS — Evidence</title>
+  <link rel="stylesheet" href="style.css"/>
+  <style>
+    .layout{display:grid;grid-template-columns:1fr 360px;gap:20px;align-items:start;}
+    .form-panel{background:var(--surface);border:1px solid var(--border);}
+    .form-body{padding:20px;}
+    .form-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+    .type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
+    .type-btn{background:var(--bg);border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:10px;padding:8px;text-align:center;cursor:pointer;transition:all 0.2s;}
+    .type-btn:hover,.type-btn.sel{border-color:var(--accent);color:var(--accent);background:rgba(232,48,58,0.08);}
+    .type-icon{font-size:18px;display:block;margin-bottom:3px;}
+    .ev-card{border-bottom:1px solid rgba(30,37,48,0.5);padding:13px 17px;transition:background 0.2s;}
+    .ev-card:hover{background:rgba(255,255,255,0.02);}
+    .ev-card:last-child{border-bottom:none;}
+    .ev-top{display:flex;align-items:flex-start;gap:10px;}
+    .ev-icon{width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:16px;background:var(--bg);border:1px solid var(--border);flex-shrink:0;}
+    .ev-title{font-size:13px;font-weight:600;color:#fff;}
+    .ev-meta{font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:2px;line-height:1.7;}
+    .ev-path{font-family:var(--mono);font-size:10px;color:var(--blue);margin-top:5px;word-break:break-all;}
+    .stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px;}
+    .stat-mini{background:var(--surface);border:1px solid var(--border);padding:12px;text-align:center;}
+    .stat-mini-num{font-family:var(--cond);font-size:24px;font-weight:800;}
+    .stat-mini-label{font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:2px;}
+    .search-box{padding:11px 17px;border-bottom:1px solid var(--border);}
+    .search-box input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:7px 10px;font-family:var(--mono);font-size:11px;outline:none;}
+    .search-box input:focus{border-color:var(--accent);}
+  </style>
+</head>
+<body>
+<div id="sidebar-container"></div>
+<main class="main">
+  <header class="topbar">
+    <div class="topbar-title">CRMS &nbsp;/&nbsp; <span>EVIDENCE MANAGEMENT</span></div>
+  </header>
+  <div class="content">
+    <div class="page-header">
+      <div><h2>EVIDENCE MANAGEMENT</h2><p>// UPLOAD LINKS · FILE PATHS · LINKED TO CRIMES IN MySQL</p></div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-row" id="ev-stats">
+      <div class="stat-mini"><div class="stat-mini-num" style="color:var(--blue)" id="ev-total">—</div><div class="stat-mini-label">TOTAL</div></div>
+      <div class="stat-mini"><div class="stat-mini-num" style="color:var(--accent)" id="ev-doc">—</div><div class="stat-mini-label">DOCUMENTS</div></div>
+      <div class="stat-mini"><div class="stat-mini-num" style="color:var(--amber)" id="ev-img">—</div><div class="stat-mini-label">IMAGES</div></div>
+      <div class="stat-mini"><div class="stat-mini-num" style="color:var(--purple)" id="ev-vid">—</div><div class="stat-mini-label">VIDEOS</div></div>
+      <div class="stat-mini"><div class="stat-mini-num" style="color:var(--green)" id="ev-other">—</div><div class="stat-mini-label">OTHER</div></div>
+    </div>
+
+    <div class="layout">
+      <!-- FORM -->
+      <div class="form-panel">
+        <div class="panel-header">
+          <span class="panel-title">ADD EVIDENCE</span>
+          <span style="font-family:var(--mono);font-size:10px;color:var(--muted)">Stored in evidence table</span>
+        </div>
+        <div class="form-body">
+          <div class="form-section-title">EVIDENCE TYPE</div>
+          <div class="type-grid" id="type-grid">
+            <div class="type-btn sel" data-type="DOCUMENT" onclick="selectType(this)">
+              <span class="type-icon">📄</span>DOCUMENT
+            </div>
+            <div class="type-btn" data-type="IMAGE" onclick="selectType(this)">
+              <span class="type-icon">🖼️</span>IMAGE
+            </div>
+            <div class="type-btn" data-type="VIDEO" onclick="selectType(this)">
+              <span class="type-icon">🎥</span>VIDEO
+            </div>
+            <div class="type-btn" data-type="AUDIO" onclick="selectType(this)">
+              <span class="type-icon">🎙️</span>AUDIO
+            </div>
+            <div class="type-btn" data-type="FORENSIC" onclick="selectType(this)">
+              <span class="type-icon">🧬</span>FORENSIC
+            </div>
+            <div class="type-btn" data-type="OTHER" onclick="selectType(this)">
+              <span class="type-icon">📦</span>OTHER
+            </div>
+          </div>
+          <input type="hidden" id="f-type" value="DOCUMENT"/>
+
+          <div class="form-section-title" style="margin-top:10px">DETAILS</div>
+          <div class="form-group">
+            <label class="form-label">EVIDENCE TITLE *</label>
+            <input class="form-input" type="text" id="f-title" placeholder="e.g. CCTV Footage — MG Road"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">LINKED CRIME ID</label>
+            <input class="form-input" type="number" id="f-crime-id" placeholder="Crime ID from crimes table (optional)"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">FILE PATH / URL *</label>
+            <input class="form-input" type="text" id="f-path" placeholder="/evidence/crime1/cctv.mp4 or https://..."/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">COLLECTED BY</label>
+            <select class="form-select" id="f-collected">
+              <option>R. Desai</option><option>A. Patil</option>
+              <option>M. Kulkarni</option><option>S. Jadhav</option><option>P. More</option><option>Forensic Team</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">DESCRIPTION</label>
+            <textarea class="form-textarea" id="f-desc" placeholder="Describe what this evidence contains..."></textarea>
+          </div>
+        </div>
+        <div class="form-footer">
+          <button class="btn btn-secondary" onclick="clearForm()">CLEAR</button>
+          <button class="btn btn-primary" onclick="addEvidence()">SAVE TO DATABASE →</button>
+        </div>
+      </div>
+
+      <!-- EVIDENCE LIST -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">EVIDENCE RECORDS</span>
+          <span style="font-family:var(--mono);font-size:10px;color:var(--muted)" id="ev-count">—</span>
+        </div>
+        <div class="search-box">
+          <input type="text" placeholder="Search title, crime, type..." id="ev-search" oninput="filterEvidence()"/>
+        </div>
+        <div id="ev-list"><div class="loading">LOADING...</div></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="shared.js"></script>
+<script>
+  renderSidebar('evidence');
+  let allEvidence = [];
+  const typeIcons = { DOCUMENT:'📄', IMAGE:'🖼️', VIDEO:'🎥', AUDIO:'🎙️', FORENSIC:'🧬', OTHER:'📦' };
+  const typeColors = { DOCUMENT:'var(--accent)', IMAGE:'var(--amber)', VIDEO:'var(--purple)', AUDIO:'var(--blue)', FORENSIC:'var(--green)', OTHER:'var(--muted)' };
+
+  function selectType(el) {
+    document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('sel'));
+    el.classList.add('sel');
+    document.getElementById('f-type').value = el.dataset.type;
+  }
+
+  async function loadEvidence() {
+    try {
+      allEvidence = await fetch(`${BASE}/evidence`).then(r => r.json());
+      updateStats();
+      renderEvidence(allEvidence);
+    } catch { showToast('Server not running!', 'error'); }
+  }
+
+  function updateStats() {
+    document.getElementById('ev-total').textContent = allEvidence.length;
+    document.getElementById('ev-doc').textContent   = allEvidence.filter(e => e.file_type==='DOCUMENT').length;
+    document.getElementById('ev-img').textContent   = allEvidence.filter(e => e.file_type==='IMAGE').length;
+    document.getElementById('ev-vid').textContent   = allEvidence.filter(e => e.file_type==='VIDEO').length;
+    document.getElementById('ev-other').textContent = allEvidence.filter(e => !['DOCUMENT','IMAGE','VIDEO'].includes(e.file_type)).length;
+  }
+
+  function renderEvidence(data) {
+    document.getElementById('ev-count').textContent = `${data.length} items`;
+    document.getElementById('ev-list').innerHTML = data.length
+      ? data.map(e => `
+          <div class="ev-card">
+            <div class="ev-top">
+              <div class="ev-icon">${typeIcons[e.file_type]||'📦'}</div>
+              <div style="flex:1">
+                <div class="ev-title">${e.title}</div>
+                <div class="ev-meta">
+                  <span class="badge" style="background:rgba(58,142,245,0.1);color:var(--blue);border:1px solid rgba(58,142,245,0.2)">${e.file_type}</span>
+                  ${e.crime_id ? `&nbsp; Crime #${e.crime_id}${e.crime_type?' ('+e.crime_type+')':''}` : ''}
+                </div>
+                <div class="ev-meta">By ${e.collected_by||'—'} · ${fmtDateTime(e.collected_at)}</div>
+                <div class="ev-path">📁 ${e.file_path||'—'}</div>
+                ${e.description ? `<div class="ev-meta" style="margin-top:3px">${e.description}</div>` : ''}
+              </div>
+              <button class="btn-sm-del" style="margin-left:8px" onclick="deleteEvidence(${e.evidence_id})">DEL</button>
+            </div>
+          </div>`)
+        .join('')
+      : '<div class="loading">NO EVIDENCE RECORDS</div>';
+  }
+
+  function filterEvidence() {
+    const q = document.getElementById('ev-search').value.toLowerCase();
+    renderEvidence(allEvidence.filter(e =>
+      e.title.toLowerCase().includes(q) ||
+      (e.file_type||'').toLowerCase().includes(q) ||
+      (e.crime_type||'').toLowerCase().includes(q)
+    ));
+  }
+
+  function clearForm() {
+    ['f-title','f-crime-id','f-path','f-desc'].forEach(id => document.getElementById(id).value = '');
+  }
+
+  async function addEvidence() {
+    const title = document.getElementById('f-title').value.trim();
+    const path  = document.getElementById('f-path').value.trim();
+    if (!title || !path) { showToast('Title and file path are required', 'error'); return; }
+    try {
+      await fetch(`${BASE}/evidence`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          title, file_type: document.getElementById('f-type').value,
+          file_path: path,
+          crime_id: document.getElementById('f-crime-id').value || null,
+          description: document.getElementById('f-desc').value,
+          collected_by: document.getElementById('f-collected').value,
+        })
+      });
+      showToast('✓ Evidence saved to database');
+      clearForm(); loadEvidence();
+    } catch { showToast('Error saving evidence', 'error'); }
+  }
+
+  async function deleteEvidence(id) {
+    if (!confirm('Delete this evidence record?')) return;
+    await fetch(`${BASE}/evidence/${id}`, { method:'DELETE' });
+    showToast('✓ Evidence deleted'); loadEvidence();
+  }
+
+  loadEvidence();
+</script>
+</body>
+</html>

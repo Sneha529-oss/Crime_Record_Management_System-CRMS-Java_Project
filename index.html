@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>CRMS — Dashboard</title>
+  <link rel="stylesheet" href="style.css"/>
+  <style>
+    .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-bottom:20px;}
+    .stat-card{background:var(--surface);border:1px solid var(--border);padding:20px;position:relative;overflow:hidden;transition:border-color 0.3s,transform 0.2s;animation:fadeUp 0.5s both;}
+    .stat-card:hover{transform:translateY(-2px);border-color:var(--accent);}
+    .stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+    .c-red::after{background:var(--accent);} .c-amber::after{background:var(--amber);}
+    .c-blue::after{background:var(--blue);}  .c-green::after{background:var(--green);}
+    .c-purple::after{background:var(--purple);}
+    .stat-label{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--muted);margin-bottom:8px;}
+    .stat-num{font-family:var(--cond);font-size:40px;font-weight:800;line-height:1;}
+    .c-red .stat-num{color:var(--accent);} .c-amber .stat-num{color:var(--amber);}
+    .c-blue .stat-num{color:var(--blue);}  .c-green .stat-num{color:var(--green);}
+    .c-purple .stat-num{color:var(--purple);}
+    .stat-sub{font-size:11px;color:var(--muted);margin-top:5px;}
+    .grid-2{display:grid;grid-template-columns:1fr 300px;gap:16px;margin-bottom:16px;}
+    .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;}
+    .ticker{background:rgba(232,48,58,0.07);border:1px solid rgba(232,48,58,0.2);display:flex;align-items:center;gap:12px;padding:8px 16px;margin-bottom:20px;overflow:hidden;}
+    .ticker-label{font-family:var(--mono);font-size:9px;letter-spacing:3px;color:var(--accent);white-space:nowrap;background:rgba(232,48,58,0.2);padding:2px 7px;flex-shrink:0;}
+    .ticker-text{font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap;animation:ticker 25s linear infinite;}
+    @keyframes ticker{0%{transform:translateX(100%)}100%{transform:translateX(-100%)}}
+    .bar-row{margin-bottom:12px;}
+    .bar-label{display:flex;justify-content:space-between;margin-bottom:4px;font-size:12px;}
+    .bar-label span:last-child{font-family:var(--mono);font-size:11px;color:var(--muted);}
+    .bar-track{height:4px;background:var(--border);}
+    .bar-fill{height:100%;transition:width 1s cubic-bezier(.22,1,.36,1);}
+    .fir-item{display:flex;gap:10px;padding:11px 16px;border-bottom:1px solid rgba(30,37,48,0.5);cursor:pointer;transition:background 0.2s;}
+    .fir-item:hover{background:rgba(255,255,255,0.02);}
+    .fir-dot{width:6px;height:6px;border-radius:50%;margin-top:5px;flex-shrink:0;}
+    .fir-title{font-size:13px;font-weight:600;color:#fff;}
+    .fir-meta{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:1px;}
+    .actions-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);}
+    .action-btn{background:var(--surface);border:none;padding:16px;text-align:left;cursor:pointer;transition:background 0.2s;}
+    .action-btn:hover{background:rgba(232,48,58,0.08);}
+    .action-icon{font-size:18px;margin-bottom:4px;}
+    .action-label{font-family:var(--cond);font-size:12px;font-weight:700;letter-spacing:1px;color:#fff;}
+    .action-desc{font-size:11px;color:var(--muted);margin-top:2px;}
+  </style>
+</head>
+<body>
+<div id="sidebar-container"></div>
+<main class="main">
+  <header class="topbar">
+    <div class="topbar-title">CRMS &nbsp;/&nbsp; <span>DASHBOARD</span></div>
+    <div style="display:flex;align-items:center;gap:16px">
+      <div style="font-family:var(--mono);font-size:10px;color:var(--muted)" id="clock"></div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--green);background:rgba(45,206,110,0.1);border:1px solid rgba(45,206,110,0.2);padding:3px 8px">● LIVE</div>
+    </div>
+  </header>
+  <div class="content">
+
+    <div class="ticker">
+      <span class="ticker-label">LIVE ALERTS</span>
+      <div class="ticker-text" id="ticker-text">Connecting to CRMS database...</div>
+    </div>
+
+    <div class="page-header">
+      <div><h2>COMMAND DASHBOARD</h2><p>// PUNE DISTRICT POLICE · REAL-TIME OVERVIEW · MYSQL LIVE</p></div>
+    </div>
+
+    <!-- STAT CARDS -->
+    <div class="stats-grid">
+      <div class="stat-card c-red"    style="animation-delay:.05s"><div class="stat-label">TOTAL CRIMES</div><div class="stat-num" id="cnt-total">—</div><div class="stat-sub">All incidents on record</div></div>
+      <div class="stat-card c-amber"  style="animation-delay:.1s"> <div class="stat-label">OPEN CASES</div>  <div class="stat-num" id="cnt-open">—</div>  <div class="stat-sub" id="sub-crit">— critical</div></div>
+      <div class="stat-card c-blue"   style="animation-delay:.15s"><div class="stat-label">TOTAL FIRs</div>  <div class="stat-num" id="cnt-fir">—</div>   <div class="stat-sub">Registered complaints</div></div>
+      <div class="stat-card c-green"  style="animation-delay:.2s"> <div class="stat-label">CASES CLOSED</div><div class="stat-num" id="cnt-closed">—</div><div class="stat-sub" id="sub-rate">—% rate</div></div>
+    </div>
+    <div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
+      <div class="stat-card c-purple" style="animation-delay:.25s"><div class="stat-label">CRIMINALS</div>    <div class="stat-num" id="cnt-crim">—</div><div class="stat-sub" id="sub-cust">— in custody</div></div>
+      <div class="stat-card c-amber"  style="animation-delay:.3s"> <div class="stat-label">ACTIVE WARRANTS</div><div class="stat-num" id="cnt-warr">—</div><div class="stat-sub">Arrest orders</div></div>
+      <div class="stat-card c-blue"   style="animation-delay:.35s"><div class="stat-label">EVIDENCE ITEMS</div> <div class="stat-num" id="cnt-evid">—</div><div class="stat-sub">Stored in DB</div></div>
+    </div>
+
+    <!-- CRIMES + FIR -->
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">RECENT CRIMES</span>
+          <a href="crimes.html" class="panel-action">VIEW ALL →</a>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>TYPE</th><th>LOCATION</th><th>DATE</th><th>STATUS</th></tr></thead>
+          <tbody id="crimes-tbody"><tr><td colspan="4" class="loading">LOADING...</td></tr></tbody>
+        </table>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">RECENT FIRs</span>
+          <a href="fir.html" class="panel-action">+ NEW</a>
+        </div>
+        <div id="fir-list"><div class="loading">LOADING...</div></div>
+      </div>
+    </div>
+
+    <!-- CHART + ACTIONS + DB INFO -->
+    <div class="grid-3">
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">CRIME BREAKDOWN</span></div>
+        <div style="padding:16px" id="crime-bars"><div class="loading">LOADING...</div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">QUICK ACTIONS</span></div>
+        <div class="actions-grid">
+          <button class="action-btn" onclick="location.href='fir.html'">
+            <div class="action-icon">📋</div><div class="action-label">FILE FIR</div><div class="action-desc">Register complaint</div>
+          </button>
+          <button class="action-btn" onclick="location.href='crimes.html'">
+            <div class="action-icon">➕</div><div class="action-label">ADD CRIME</div><div class="action-desc">Log incident</div>
+          </button>
+          <button class="action-btn" onclick="location.href='evidence.html'">
+            <div class="action-icon">🧪</div><div class="action-label">EVIDENCE</div><div class="action-desc">Upload evidence</div>
+          </button>
+          <button class="action-btn" onclick="location.href='predict.html'">
+            <div class="action-icon">📡</div><div class="action-label">PREDICTOR</div><div class="action-desc">Risk analysis</div>
+          </button>
+          <button class="action-btn" onclick="location.href='criminals.html'">
+            <div class="action-icon">👤</div><div class="action-label">CRIMINAL</div><div class="action-desc">Add profile</div>
+          </button>
+          <button class="action-btn" onclick="location.href='officers.html'">
+            <div class="action-icon">🔥</div><div class="action-label">HEATMAP</div><div class="action-desc">Officer load</div>
+          </button>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">DB SCHEMA INFO</span></div>
+        <div style="padding:16px;font-family:var(--mono);font-size:10px;line-height:2;color:var(--muted)" id="db-info">
+          <div>crimes <span style="float:right;color:var(--blue)" id="db-crimes">—</span></div>
+          <div>fir <span style="float:right;color:var(--blue)" id="db-fir">—</span></div>
+          <div>criminals <span style="float:right;color:var(--blue)" id="db-crim">—</span></div>
+          <div>evidence <span style="float:right;color:var(--blue)" id="db-evid">—</span></div>
+          <div>warrants <span style="float:right;color:var(--blue)" id="db-warr">—</span></div>
+          <div style="border-top:1px solid var(--border);margin-top:8px;padding-top:8px">
+            <span style="color:var(--green)">●</span> MySQL 8.0 · crms_db
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AUDIT TERMINAL -->
+    <div style="margin-bottom:4px">
+      <div class="terminal-header">
+        <div class="term-dot" style="background:#e8303a"></div>
+        <div class="term-dot" style="background:#f5a623"></div>
+        <div class="term-dot" style="background:#2dce6e"></div>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-left:8px">
+          CRMS SYSTEM LOG — audit_logs table — AUTO REFRESH 5s
+        </span>
+        <span style="margin-left:auto;font-family:var(--mono);font-size:9px;color:var(--green)">● LIVE</span>
+      </div>
+      <div class="terminal" id="audit-terminal">
+        <div class="loading">CONNECTING TO AUDIT LOG...</div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script src="shared.js"></script>
+<script>
+  renderSidebar('dashboard');
+  setInterval(() => {
+    document.getElementById('clock').textContent =
+      new Date().toLocaleTimeString('en-IN', { hour12:false });
+  }, 1000);
+
+  async function loadAll() {
+    try {
+      const s = await fetch(`${BASE}/stats`).then(r => r.json());
+      animateCounter(document.getElementById('cnt-total'),  Number(s.total_crimes));
+      animateCounter(document.getElementById('cnt-open'),   Number(s.open_cases));
+      animateCounter(document.getElementById('cnt-fir'),    Number(s.total_firs));
+      animateCounter(document.getElementById('cnt-closed'), Number(s.closed_cases));
+      animateCounter(document.getElementById('cnt-crim'),   Number(s.total_criminals));
+      animateCounter(document.getElementById('cnt-warr'),   Number(s.active_warrants));
+      animateCounter(document.getElementById('cnt-evid'),   Number(s.total_evidence));
+      document.getElementById('sub-crit').textContent = `${s.critical_cases} critical priority`;
+      const rate = s.total_crimes > 0 ? Math.round((s.closed_cases/s.total_crimes)*100) : 0;
+      document.getElementById('sub-rate').textContent = `${rate}% resolution rate`;
+      document.getElementById('sub-cust').textContent = `${s.in_custody} in custody`;
+      document.getElementById('ticker-text').textContent =
+        `⚠ ${s.open_cases} OPEN CASES  |  🔴 ${s.critical_cases} CRITICAL  |  📄 ${s.total_firs} FIRs FILED  |  👤 ${s.in_custody} IN CUSTODY  |  ⚖ ${s.active_warrants} ACTIVE WARRANTS  |  🧪 ${s.total_evidence} EVIDENCE ITEMS`;
+      // DB info
+      ['crimes','fir','crim','evid','warr'].forEach(k => {
+        const el = document.getElementById(`db-${k}`);
+        if (el) el.textContent = '↑ loaded';
+      });
+    } catch { showToast('Cannot reach server. Run: node server.js', 'error'); }
+  }
+
+  async function loadCrimes() {
+    const data = await fetch(`${BASE}/dashboard/recent`).then(r => r.json());
+    document.getElementById('crimes-tbody').innerHTML = data.length
+      ? data.map(c => `<tr>
+          <td class="td-bold">${c.crime_type}</td>
+          <td class="td-muted">📍 ${c.location}</td>
+          <td class="td-muted">${fmtDate(c.date)}</td>
+          <td>${badge(c.status)}</td>
+        </tr>`).join('')
+      : `<tr><td colspan="4" class="loading">NO DATA</td></tr>`;
+  }
+
+  async function loadFIRs() {
+    const data = await fetch(`${BASE}/fir`).then(r => r.json());
+    const colors = { OPEN:'var(--accent)', PENDING:'var(--amber)', CLOSED:'var(--green)' };
+    document.getElementById('fir-list').innerHTML = data.slice(0,5).map(f => `
+      <div class="fir-item">
+        <div class="fir-dot" style="background:${colors[f.status]||'var(--muted)'}"></div>
+        <div>
+          <div class="fir-title">${f.crime_type} — ${f.incident_location||'—'}</div>
+          <div class="fir-meta">${f.fir_number} · ${f.receiving_officer} · ${badge(f.status)}</div>
+        </div>
+      </div>`).join('') || '<div class="loading">NO FIRs</div>';
+  }
+
+  async function loadChart() {
+    const data = await fetch(`${BASE}/stats/by-type`).then(r => r.json());
+    const max = data.length ? Math.max(...data.map(d => d.count)) : 1;
+    const colors = ['var(--blue)','var(--accent)','var(--amber)','var(--purple)','var(--green)','var(--muted)'];
+    const el = document.getElementById('crime-bars');
+    el.innerHTML = data.map((d,i) => `
+      <div class="bar-row">
+        <div class="bar-label"><span>${d.crime_type}</span><span>${d.count}</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:0%;background:${colors[i%colors.length]}"
+          data-pct="${Math.round((d.count/max)*100)}"></div></div>
+      </div>`).join('');
+    setTimeout(() => el.querySelectorAll('.bar-fill').forEach(b => b.style.width = b.dataset.pct+'%'), 100);
+  }
+
+  loadAll(); loadCrimes(); loadFIRs(); loadChart();
+  startAuditTerminal('audit-terminal');
+</script>
+</body>
+</html>

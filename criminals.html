@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>CRMS — Criminals</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+<div id="sidebar-container"></div>
+<main class="main">
+  <header class="topbar">
+    <div class="topbar-title">CRMS &nbsp;/&nbsp; <span>CRIMINALS</span></div>
+  </header>
+  <div class="content">
+    <div class="page-header">
+      <div><h2>CRIMINAL RECORDS</h2><p>// PROFILES · WARRANT GENERATION · MYSQL LINKED</p></div>
+      <button class="btn btn-primary" onclick="openAddModal()">+ ADD CRIMINAL</button>
+    </div>
+
+    <div class="filters">
+      <input  class="filter-input"  type="text" id="s-search" placeholder="Search by name..." oninput="applyFilters()"/>
+      <select class="filter-select" id="s-status" onchange="applyFilters()">
+        <option value="">ALL STATUS</option>
+        <option>AT_LARGE</option><option>IN_CUSTODY</option><option>RELEASED</option>
+      </select>
+    </div>
+
+    <div class="panel">
+      <table class="data-table">
+        <thead><tr><th>#</th><th>NAME</th><th>GENDER</th><th>DOB</th><th>ADDRESS</th><th>STATUS</th><th>ACTIONS</th></tr></thead>
+        <tbody id="tbody"><tr><td colspan="7" class="loading">LOADING...</td></tr></tbody>
+      </table>
+    </div>
+
+    <!-- WARRANTS TABLE -->
+    <div style="margin-top:20px">
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">ISSUED WARRANTS</span>
+          <span style="font-family:var(--mono);font-size:10px;color:var(--muted)" id="warrant-count">—</span>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>WARRANT NO</th><th>CRIMINAL</th><th>ISSUED BY</th><th>VALID UNTIL</th><th>STATUS</th><th>ACTIONS</th></tr></thead>
+          <tbody id="warrant-tbody"><tr><td colspan="6" class="loading">LOADING...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ADD CRIMINAL MODAL -->
+<div class="modal-overlay" id="add-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">ADD CRIMINAL PROFILE</span>
+      <button class="modal-close" onclick="closeModal('add-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">FULL NAME *</label>
+          <input class="form-input" type="text" id="f-name" placeholder="Full name"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">STATUS</label>
+          <select class="form-select" id="f-status">
+            <option value="AT_LARGE">AT LARGE</option>
+            <option value="IN_CUSTODY">IN CUSTODY</option>
+            <option value="RELEASED">RELEASED</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">DATE OF BIRTH</label>
+          <input class="form-input" type="date" id="f-dob"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">GENDER</label>
+          <select class="form-select" id="f-gender">
+            <option>Male</option><option>Female</option><option>Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">ADDRESS</label>
+        <input class="form-input" type="text" id="f-address" placeholder="Last known address"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">CONTACT</label>
+        <input class="form-input" type="text" id="f-contact" placeholder="Contact number"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">PHYSICAL DESCRIPTION</label>
+        <textarea class="form-textarea" id="f-desc" placeholder="Height, marks, tattoos, distinguishing features..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('add-modal')">CANCEL</button>
+      <button class="btn btn-primary" onclick="saveCriminal()">SAVE TO DATABASE</button>
+    </div>
+  </div>
+</div>
+
+<!-- WARRANT MODAL -->
+<div class="modal-overlay" id="warrant-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">⚖ ISSUE ARREST WARRANT</span>
+      <button class="modal-close" onclick="closeModal('warrant-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:rgba(232,48,58,0.08);border:1px solid rgba(232,48,58,0.2);padding:10px 14px;margin-bottom:16px;font-family:var(--mono);font-size:10px;color:var(--accent)">
+        ⚠ RESTRICTED — This warrant will be saved to the database and can be printed.
+      </div>
+      <input type="hidden" id="w-criminal-id"/>
+      <div class="form-group">
+        <label class="form-label">CRIMINAL</label>
+        <input class="form-input" type="text" id="w-criminal-name" disabled style="opacity:0.7"/>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">LINKED CRIME ID</label>
+          <input class="form-input" type="number" id="w-crime-id" placeholder="Optional crime ID"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">VALID UNTIL *</label>
+          <input class="form-input" type="date" id="w-valid"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">ISSUING OFFICER *</label>
+        <select class="form-select" id="w-officer">
+          <option>SP R. Desai</option><option>A. Patil</option>
+          <option>M. Kulkarni</option><option>S. Jadhav</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">REASON / GROUNDS *</label>
+        <textarea class="form-textarea" id="w-reason" placeholder="State the grounds for issuing this warrant..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('warrant-modal')">CANCEL</button>
+      <button class="btn btn-primary" onclick="issueWarrant()">ISSUE & SAVE TO DB</button>
+    </div>
+  </div>
+</div>
+
+<script src="shared.js"></script>
+<script>
+  renderSidebar('criminals');
+  let allData = [];
+
+  async function load() {
+    try {
+      allData = await fetch(`${BASE}/criminals`).then(r => r.json());
+      render(allData);
+    } catch { showToast('Server not running!', 'error'); }
+  }
+
+  function render(data) {
+    const tbody = document.getElementById('tbody');
+    tbody.innerHTML = data.length ? data.map(c => `
+      <tr>
+        <td class="td-id">#${c.criminal_id}</td>
+        <td class="td-bold">${c.name}</td>
+        <td class="td-muted">${c.gender||'—'}</td>
+        <td class="td-muted">${fmtDate(c.dob)}</td>
+        <td class="td-muted">${c.address||'—'}</td>
+        <td>${badge(c.status)}</td>
+        <td style="display:flex;gap:5px">
+          <button class="btn-warn" onclick="openWarrantModal(${c.criminal_id},'${c.name}')">⚖ WARRANT</button>
+          <button class="btn-sm-del" onclick="deleteCriminal(${c.criminal_id})">DEL</button>
+        </td>
+      </tr>`).join('')
+    : `<tr><td colspan="7" class="loading">NO RECORDS</td></tr>`;
+  }
+
+  function applyFilters() {
+    const q = document.getElementById('s-search').value.toLowerCase();
+    const s = document.getElementById('s-status').value;
+    render(allData.filter(c =>
+      (!q || c.name.toLowerCase().includes(q)) && (!s || c.status === s)
+    ));
+  }
+
+  function openAddModal() { document.getElementById('add-modal').classList.add('open'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+  async function saveCriminal() {
+    const name = document.getElementById('f-name').value.trim();
+    if (!name) { showToast('Name is required', 'error'); return; }
+    try {
+      await fetch(`${BASE}/criminals`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          name, status: document.getElementById('f-status').value,
+          dob: document.getElementById('f-dob').value,
+          gender: document.getElementById('f-gender').value,
+          address: document.getElementById('f-address').value,
+          contact: document.getElementById('f-contact').value,
+          description: document.getElementById('f-desc').value,
+        })
+      });
+      showToast('✓ Criminal added to database');
+      closeModal('add-modal'); load();
+    } catch { showToast('Error saving', 'error'); }
+  }
+
+  async function deleteCriminal(id) {
+    if (!confirm('Delete this criminal record?')) return;
+    await fetch(`${BASE}/criminals/${id}`, { method:'DELETE' });
+    showToast('✓ Deleted'); load();
+  }
+
+  // ── WARRANT ──────────────────────────────────────────────
+  function openWarrantModal(id, name) {
+    document.getElementById('w-criminal-id').value  = id;
+    document.getElementById('w-criminal-name').value = name;
+    // Default valid until 3 months from now
+    const d = new Date(); d.setMonth(d.getMonth() + 3);
+    document.getElementById('w-valid').value = d.toISOString().split('T')[0];
+    document.getElementById('w-reason').value = '';
+    document.getElementById('warrant-modal').classList.add('open');
+  }
+
+  async function issueWarrant() {
+    const cid    = document.getElementById('w-criminal-id').value;
+    const cname  = document.getElementById('w-criminal-name').value;
+    const valid  = document.getElementById('w-valid').value;
+    const reason = document.getElementById('w-reason').value.trim();
+    const officer= document.getElementById('w-officer').value;
+    const crimeId= document.getElementById('w-crime-id').value;
+    if (!valid || !reason) { showToast('Fill valid date and reason', 'error'); return; }
+    try {
+      const res = await fetch(`${BASE}/warrants`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ criminal_id:cid, crime_id:crimeId||null, issued_by:officer, valid_until:valid, reason })
+      }).then(r => r.json());
+
+      showToast(`✓ ${res.warrant_number} issued and saved to DB`);
+      closeModal('warrant-modal');
+      loadWarrants();
+
+      // Print warrant
+      setTimeout(() => printWarrant({
+        warrant_number: res.warrant_number,
+        criminal_name: cname,
+        criminal_id: cid,
+        issued_by: officer,
+        valid_until: valid,
+        reason,
+        issued_date: new Date().toLocaleDateString('en-IN')
+      }), 400);
+    } catch { showToast('Error issuing warrant', 'error'); }
+  }
+
+  function printWarrant(w) {
+    const win = window.open('', '_blank', 'width=800,height=900');
+    win.document.write(`<!DOCTYPE html><html><head><title>Warrant ${w.warrant_number}</title>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700&family=Barlow+Condensed:wght@700;800&display=swap');
+      *{margin:0;padding:0;box-sizing:border-box;}
+      body{font-family:'Barlow',sans-serif;background:#fff;color:#111;padding:40px;}
+      .watermark{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-35deg);
+        font-size:100px;color:rgba(220,0,0,0.06);font-weight:800;pointer-events:none;white-space:nowrap;font-family:'Barlow Condensed',sans-serif;}
+      .header{text-align:center;border-bottom:3px double #111;padding-bottom:20px;margin-bottom:24px;}
+      .crest{font-size:40px;margin-bottom:8px;}
+      h1{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;letter-spacing:3px;}
+      .subtitle{font-size:13px;letter-spacing:2px;color:#444;margin-top:4px;}
+      .restricted{display:inline-block;background:#cc0000;color:#fff;font-size:11px;letter-spacing:3px;padding:4px 16px;margin-top:10px;}
+      .warrant-no{text-align:right;font-size:12px;color:#444;margin-bottom:20px;font-family:monospace;}
+      .section{margin-bottom:20px;}
+      .section-title{font-size:10px;letter-spacing:3px;color:#888;margin-bottom:6px;text-transform:uppercase;}
+      .section-value{font-size:15px;font-weight:600;border-bottom:1px solid #ddd;padding-bottom:6px;}
+      .reason-box{border:1px solid #ccc;padding:14px;background:#fafafa;font-size:14px;line-height:1.7;min-height:80px;}
+      .two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+      .footer{margin-top:40px;border-top:2px solid #111;padding-top:20px;display:grid;grid-template-columns:1fr 1fr;gap:30px;}
+      .sig-line{border-top:1px solid #111;margin-top:40px;padding-top:8px;font-size:12px;color:#444;}
+      .print-btn{position:fixed;top:20px;right:20px;background:#cc0000;color:#fff;border:none;padding:10px 20px;cursor:pointer;font-size:13px;font-weight:700;letter-spacing:1px;}
+      .print-btn:hover{background:#aa0000;}
+      @media print{.print-btn{display:none;}.watermark{position:fixed;}}
+    </style></head><body>
+    <div class="watermark">RESTRICTED</div>
+    <button class="print-btn" onclick="window.print()">🖨 PRINT WARRANT</button>
+    <div class="header">
+      <div class="crest">⚖️</div>
+      <h1>WARRANT OF ARREST</h1>
+      <div class="subtitle">PUNE DISTRICT POLICE · MAHARASHTRA, INDIA</div>
+      <div class="subtitle">CRIME RECORD MANAGEMENT SYSTEM</div>
+      <div class="restricted">⛔ RESTRICTED ACCESS — AUTHORIZED PERSONNEL ONLY</div>
+    </div>
+    <div class="warrant-no">
+      Warrant No: <strong>${w.warrant_number}</strong> &nbsp;|&nbsp;
+      Date Issued: <strong>${w.issued_date}</strong> &nbsp;|&nbsp;
+      Valid Until: <strong>${new Date(w.valid_until).toLocaleDateString('en-IN')}</strong>
+    </div>
+    <p style="margin-bottom:20px;font-size:14px;line-height:1.8;color:#333">
+      To all Police Officers of Maharashtra State Police,<br/>
+      <strong>THIS IS TO COMMAND YOU</strong> to arrest the person named hereunder and bring them before the competent court of law forthwith.
+    </p>
+    <div class="two-col" style="margin-bottom:20px">
+      <div class="section">
+        <div class="section-title">Full Name of Accused</div>
+        <div class="section-value">${w.criminal_name}</div>
+      </div>
+      <div class="section">
+        <div class="section-title">Criminal Record ID</div>
+        <div class="section-value">#${w.criminal_id}</div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">Grounds / Reason for Arrest</div>
+      <div class="reason-box">${w.reason}</div>
+    </div>
+    <div class="footer">
+      <div>
+        <div class="section-title">Issuing Authority</div>
+        <div style="font-size:15px;font-weight:700;margin-bottom:4px">${w.issued_by}</div>
+        <div style="font-size:12px;color:#444">Pune District Police<br/>Maharashtra State Police</div>
+        <div class="sig-line">Authorized Signature</div>
+      </div>
+      <div>
+        <div class="section-title">Court Seal / Official Stamp</div>
+        <div style="border:2px dashed #ccc;height:80px;display:flex;align-items:center;justify-content:center;color:#ccc;font-size:12px;letter-spacing:2px;margin-top:4px">SEAL</div>
+        <div class="sig-line">Court Registrar</div>
+      </div>
+    </div>
+    <p style="margin-top:24px;font-size:11px;color:#888;text-align:center">
+      Generated by CRMS — DBMS Mini Project · Pune · ${new Date().toLocaleString('en-IN')}
+    </p>
+    </body></html>`);
+    win.document.close();
+  }
+
+  async function loadWarrants() {
+    try {
+      const warrants = await fetch(`${BASE}/warrants`).then(r => r.json());
+      document.getElementById('warrant-count').textContent = `${warrants.length} total`;
+      document.getElementById('warrant-tbody').innerHTML = warrants.length
+        ? warrants.map(w => `<tr>
+            <td class="td-id">${w.warrant_number}</td>
+            <td class="td-bold">${w.criminal_name||'—'}</td>
+            <td class="td-muted">${w.issued_by}</td>
+            <td class="td-muted">${fmtDate(w.valid_until)}</td>
+            <td>${badge(w.status)}</td>
+            <td>
+              <button class="btn-sm-edit" onclick='printWarrant(${JSON.stringify({
+                warrant_number:w.warrant_number, criminal_name:w.criminal_name,
+                criminal_id:w.criminal_id, issued_by:w.issued_by,
+                valid_until:w.valid_until, reason:w.reason,
+                issued_date:fmtDate(w.created_at)
+              })})'>🖨 PRINT</button>
+              ${w.status==='ACTIVE'?`<button class="btn-sm-del" onclick="revokeWarrant(${w.warrant_id})">REVOKE</button>`:''}
+            </td>
+          </tr>`).join('')
+        : `<tr><td colspan="6" class="loading">NO WARRANTS ISSUED</td></tr>`;
+    } catch {}
+  }
+
+  async function revokeWarrant(id) {
+    if (!confirm('Revoke this warrant?')) return;
+    await fetch(`${BASE}/warrants/${id}/revoke`, { method:'PUT' });
+    showToast('✓ Warrant revoked'); loadWarrants();
+  }
+
+  load(); loadWarrants();
+</script>
+</body>
+</html>

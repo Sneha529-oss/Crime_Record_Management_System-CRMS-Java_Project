@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>CRMS — Crime Predictor</title>
+  <link rel="stylesheet" href="style.css"/>
+  <style>
+    .predict-header{background:rgba(58,142,245,0.07);border:1px solid rgba(58,142,245,0.2);padding:16px 20px;margin-bottom:22px;display:flex;align-items:flex-start;gap:14px;}
+    .predict-icon{font-size:28px;flex-shrink:0;}
+    .predict-note{font-family:var(--mono);font-size:10px;color:var(--muted);line-height:1.8;}
+    .predict-note strong{color:var(--blue);}
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+    .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;}
+    .risk-row{display:flex;align-items:center;gap:12px;padding:13px 18px;border-bottom:1px solid rgba(30,37,48,0.5);transition:background 0.2s;}
+    .risk-row:hover{background:rgba(255,255,255,0.02);}
+    .risk-row:last-child{border-bottom:none;}
+    .risk-circle{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--cond);font-size:16px;font-weight:800;flex-shrink:0;}
+    .risk-CRITICAL{background:rgba(255,34,51,0.2);color:#ff2233;border:2px solid rgba(255,34,51,0.4);}
+    .risk-HIGH    {background:rgba(232,48,58,0.15);color:var(--accent);border:2px solid rgba(232,48,58,0.3);}
+    .risk-MEDIUM  {background:rgba(245,166,35,0.12);color:var(--amber);border:2px solid rgba(245,166,35,0.25);}
+    .risk-LOW     {background:rgba(45,206,110,0.1);color:var(--green);border:2px solid rgba(45,206,110,0.2);}
+    .risk-info{flex:1;}
+    .risk-location{font-size:14px;font-weight:700;color:#fff;}
+    .risk-types{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:2px;}
+    .risk-bar-track{width:100px;height:5px;background:var(--border);flex-shrink:0;}
+    .risk-bar-fill{height:100%;transition:width 1s ease;}
+    .trend-row{display:flex;align-items:center;gap:10px;padding:10px 18px;border-bottom:1px solid rgba(30,37,48,0.5);}
+    .trend-icon{font-size:18px;width:24px;text-align:center;}
+    .trend-name{font-size:13px;font-weight:600;color:#fff;flex:1;}
+    .trend-count{font-family:var(--mono);font-size:12px;color:var(--muted);width:50px;text-align:right;}
+    .trend-fill{height:3px;background:var(--border);margin-top:4px;}
+    .trend-bar{height:100%;transition:width 1s ease;}
+    .month-bar-wrap{display:flex;flex-direction:column;align-items:center;gap:5px;flex:1;}
+    .month-col{background:var(--surface);border:1px solid var(--border);padding:12px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px;flex:1;}
+    .month-bar-track{width:30px;height:80px;background:var(--border);display:flex;align-items:flex-end;}
+    .month-bar-fill{width:100%;background:var(--blue);transition:height 1s ease;}
+    .month-label{font-family:var(--mono);font-size:9px;color:var(--muted);}
+    .month-count{font-family:var(--cond);font-size:18px;font-weight:800;color:var(--blue);}
+    .pulse-dot{width:8px;height:8px;border-radius:50%;background:var(--blue);animation:pulse 1.5s infinite;}
+    .scanning{font-family:var(--mono);font-size:11px;color:var(--blue);animation:blink2 1.5s infinite;}
+    @keyframes blink2{0%,100%{opacity:1}50%{opacity:0.3}}
+    .alert-zone{background:rgba(232,48,58,0.06);border:1px solid rgba(232,48,58,0.2);padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:10px;}
+    .az-icon{font-size:18px;}
+    .az-text{font-family:var(--mono);font-size:11px;color:var(--muted);}
+    .az-text strong{color:var(--accent);}
+  </style>
+</head>
+<body>
+<div id="sidebar-container"></div>
+<main class="main">
+  <header class="topbar">
+    <div class="topbar-title">CRMS &nbsp;/&nbsp; <span>CRIME PREDICTOR</span></div>
+    <div class="scanning">● ANALYZING DATABASE...</div>
+  </header>
+  <div class="content">
+    <div class="page-header">
+      <div><h2>AI CRIME PREDICTOR</h2><p>// PREDICTIVE ANALYSIS · SQL AGGREGATION · RISK SCORING</p></div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="pulse-dot"></div>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--blue)">LIVE ANALYSIS</span>
+      </div>
+    </div>
+
+    <div class="predict-header">
+      <div class="predict-icon">🤖</div>
+      <div class="predict-note">
+        <strong>PREDICTIVE ANALYSIS ENGINE</strong> — Powered by SQL aggregations on live MySQL data.<br/>
+        Risk scores computed from: <strong>crime frequency per zone</strong> · <strong>active case count</strong> · <strong>critical incident weight</strong>.<br/>
+        Formula: <strong>risk_score = (location_count / max_count × 100)</strong> — refreshed from database in real time.
+      </div>
+    </div>
+
+    <!-- ALERT ZONES -->
+    <div id="alert-zones"></div>
+
+    <div class="grid-2">
+      <!-- HIGH RISK ZONES -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">📍 RISK ZONE ANALYSIS</span>
+          <span style="font-family:var(--mono);font-size:10px;color:var(--muted)" id="zone-count">—</span>
+        </div>
+        <div id="risk-zones"><div class="loading">ANALYZING...</div></div>
+      </div>
+
+      <!-- CRIME TRENDS -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">📊 CRIME TYPE TRENDS</span>
+        </div>
+        <div id="crime-trends"><div class="loading">ANALYZING...</div></div>
+      </div>
+    </div>
+
+    <!-- MONTHLY CHART + SUMMARY -->
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">📅 MONTHLY CRIME VOLUME</span></div>
+        <div style="padding:16px">
+          <div style="display:flex;gap:10px;align-items:flex-end" id="month-chart">
+            <div class="loading">LOADING...</div>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">🧠 PREDICTION SUMMARY</span></div>
+        <div style="padding:16px;font-family:var(--mono);font-size:11px;line-height:2;color:var(--muted)" id="predict-summary">
+          <div class="loading">COMPUTING...</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script src="shared.js"></script>
+<script>
+  renderSidebar('predict');
+
+  const riskColors = {
+    CRITICAL: '#ff2233', HIGH: 'var(--accent)', MEDIUM: 'var(--amber)', LOW: 'var(--green)'
+  };
+  const crimeIcons = {
+    Robbery:'🔫', Assault:'👊', Theft:'🕵️', Cybercrime:'💻',
+    Murder:'⚠️', Fraud:'📋', Other:'🔍'
+  };
+
+  async function loadPredict() {
+    try {
+      const { locations, trends, months } = await fetch(`${BASE}/predict`).then(r => r.json());
+
+      // Alert zones (CRITICAL/HIGH only)
+      const alerts = locations.filter(l => l.risk_level === 'CRITICAL' || l.risk_level === 'HIGH');
+      document.getElementById('alert-zones').innerHTML = alerts.map(a => `
+        <div class="alert-zone">
+          <div class="az-icon">🚨</div>
+          <div class="az-text">
+            <strong>HIGH RISK ZONE:</strong> ${a.location} —
+            ${a.total} incidents recorded, ${a.active} active cases.
+            Primary crimes: ${a.crime_types}
+          </div>
+          <span class="badge badge-${a.risk_level}">${a.risk_level}</span>
+        </div>`).join('');
+
+      // Risk zones
+      document.getElementById('zone-count').textContent = `${locations.length} zones`;
+      const maxScore = locations.length ? Math.max(...locations.map(l => l.risk_score)) : 1;
+      document.getElementById('risk-zones').innerHTML = locations.map(l => `
+        <div class="risk-row">
+          <div class="risk-circle risk-${l.risk_level}">${l.risk_score}</div>
+          <div class="risk-info">
+            <div class="risk-location">📍 ${l.location}</div>
+            <div class="risk-types">${l.crime_types} · ${l.active} active · ${l.total} total</div>
+          </div>
+          <div>
+            <div style="margin-bottom:4px;text-align:right">${badge(l.risk_level)}</div>
+            <div class="risk-bar-track">
+              <div class="risk-bar-fill" style="width:0%;background:${riskColors[l.risk_level]}"
+                   data-pct="${l.risk_score}"></div>
+            </div>
+          </div>
+        </div>`).join('');
+      setTimeout(() => document.querySelectorAll('.risk-bar-fill').forEach(b => b.style.width = b.dataset.pct+'%'), 100);
+
+      // Crime trends
+      const maxTrend = trends.length ? Math.max(...trends.map(t => t.count)) : 1;
+      const trendColors = ['var(--accent)','var(--blue)','var(--amber)','var(--purple)','var(--green)','var(--muted)'];
+      document.getElementById('crime-trends').innerHTML = trends.map((t,i) => `
+        <div class="trend-row">
+          <div class="trend-icon">${crimeIcons[t.crime_type]||'🔍'}</div>
+          <div style="flex:1">
+            <div style="display:flex;justify-content:space-between">
+              <span class="trend-name">${t.crime_type}</span>
+              <span class="trend-count">${t.count} cases</span>
+            </div>
+            <div class="trend-fill">
+              <div class="trend-bar" style="width:0%;background:${trendColors[i%trendColors.length]}"
+                   data-pct="${Math.round((t.count/maxTrend)*100)}"></div>
+            </div>
+            <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:2px">
+              ${t.open} open · ${t.critical} critical
+            </div>
+          </div>
+        </div>`).join('');
+      setTimeout(() => document.querySelectorAll('.trend-bar').forEach(b => b.style.width = b.dataset.pct+'%'), 100);
+
+      // Monthly chart
+      const maxMonth = months.length ? Math.max(...months.map(m => m.count)) : 1;
+      document.getElementById('month-chart').innerHTML = months.reverse().map(m => {
+        const pct = Math.round((m.count/maxMonth)*100);
+        return `
+          <div class="month-col">
+            <div class="month-count">${m.count}</div>
+            <div class="month-bar-track">
+              <div class="month-bar-fill" style="height:0%" data-pct="${pct}"></div>
+            </div>
+            <div class="month-label">${m.month}</div>
+          </div>`;
+      }).join('');
+      setTimeout(() => document.querySelectorAll('.month-bar-fill').forEach(b => b.style.height = b.dataset.pct+'%'), 100);
+
+      // Prediction summary
+      const topZone  = locations[0];
+      const topCrime = trends[0];
+      const totalActive = locations.reduce((a,b) => a + Number(b.active), 0);
+      document.getElementById('predict-summary').innerHTML = `
+        <div style="color:var(--text);margin-bottom:10px;font-size:12px">DATABASE ANALYSIS COMPLETE ✓</div>
+        <div>Zones analyzed &nbsp;&nbsp;&nbsp;<span style="color:var(--blue);float:right">${locations.length}</span></div>
+        <div>Crime types tracked &nbsp;<span style="color:var(--blue);float:right">${trends.length}</span></div>
+        <div>Active cases &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--accent);float:right">${totalActive}</span></div>
+        <div style="border-top:1px solid var(--border);margin:8px 0;padding-top:8px">
+          <div style="color:var(--amber)">HIGHEST RISK ZONE:</div>
+          <div style="color:#fff;font-size:12px;margin-top:2px">${topZone?.location||'—'} (score: ${topZone?.risk_score||0})</div>
+        </div>
+        <div>
+          <div style="color:var(--amber)">MOST FREQUENT CRIME:</div>
+          <div style="color:#fff;font-size:12px;margin-top:2px">${topCrime?.crime_type||'—'} (${topCrime?.count||0} cases)</div>
+        </div>
+        <div style="margin-top:12px;padding:8px;border:1px solid rgba(58,142,245,0.2);background:rgba(58,142,245,0.05)">
+          <span style="color:var(--blue)">RECOMMENDATION:</span>
+          Increase patrol frequency at ${topZone?.location||'identified zones'}.
+          Focus resources on ${topCrime?.crime_type||'high frequency crimes'} prevention.
+        </div>`;
+    } catch { showToast('Server not running!', 'error'); }
+  }
+
+  loadPredict();
+</script>
+</body>
+</html>
